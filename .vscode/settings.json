@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "usb_dcd_int.h": "c",
+        "bsp_usb.h": "c",
+        "stm32f4xx.h": "c",
+        "st_usb_cdc.h": "c"
+    }
+}
