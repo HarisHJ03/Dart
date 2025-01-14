@@ -65,6 +65,9 @@ uint8_t Adjust_Savety_Flag;
 uint8_t Check_Locked_Flag;
 uint8_t Can1_Flag, Can2_Flag;
 
+
+uint8_t test_state;
+
 // 一个枚举，提高代码可读性
 enum beat_state
 {
@@ -74,9 +77,9 @@ enum beat_state
 };
 
 // 三对摩擦轮转速预设
-int16_t target_speed1[3] = {0, 5800, 8500}; // 0停转 1前哨站 2基地
-int16_t target_speed2[3] = {0, 5800, 8500}; // 0停转 1前哨站 2基地
-int16_t target_speed3[3] = {0, 5800, 8500}; // 0停转 1前哨站 2基地
+int16_t target_speed1[3] = {0, 2000, 4000}; // 0停转 1前哨站 2基地5800, 8500
+int16_t target_speed2[3] = {0, 2000, 4000}; // 0停转 1前哨站 2基地
+int16_t target_speed3[3] = {0, 2000, 4000}; // 0停转 1前哨站 2基地
 // yaw轴角度存储数组，储存前哨站和基地的位置
 int32_t target_angle[3]; // 0无 1前哨站 2基地
 
@@ -380,6 +383,7 @@ static void Fire_Mode(void) // 发射准备，右边拨杆打到最上
 			break;
 		// 锁死模式
 		case 3: // 中间，锁定发射机构
+			test_state=1;
 			fire_target_speed[0] = target_speed1[STOP];
 			fire_target_speed[1] = target_speed2[STOP];
 			fire_target_speed[2] = target_speed3[STOP];
@@ -410,6 +414,7 @@ static void Fire_Mode(void) // 发射准备，右边拨杆打到最上
 			Fire_Savety_Flag = 1; // 发射安全检测完成置1
 		}
 		// 没有通过Fire安全判断锁死发射机构
+		test_state=2;
 		fire_target_speed[0] = target_speed1[STOP];
 		fire_target_speed[1] = target_speed2[STOP];
 		fire_target_speed[2] = target_speed3[STOP];
@@ -417,9 +422,10 @@ static void Fire_Mode(void) // 发射准备，右边拨杆打到最上
 	}
 	else // 如果连锁定都不正常直接锁死整个发射机构
 	{
-		fire_target_speed[0] = target_speed1[STOP];
-		fire_target_speed[1] = target_speed2[STOP];
-		fire_target_speed[2] = target_speed3[STOP];
+		test_state=3;
+//		fire_target_speed[0] = target_speed1[STOP];
+//		fire_target_speed[1] = target_speed2[STOP];
+//		fire_target_speed[2] = target_speed3[STOP];
 		yaw_target_angle = moto_yaw_6020.total_ecd;
 	}
 }
@@ -434,6 +440,7 @@ static void Adjust_Mode(void) // 姿态调整，右边拨杆打到中间
 	Push_Reset_Flag = 1;
 
 	// 锁死发射机构
+	test_state=4;
 	fire_target_speed[0] = target_speed1[STOP];
 	fire_target_speed[1] = target_speed1[STOP];
 	fire_target_speed[2] = target_speed1[STOP];
