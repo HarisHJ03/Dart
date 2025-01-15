@@ -7,7 +7,8 @@
 #include "bsp_dwt.h"
 
 // 以下注释都是裸机搬运过来的残留，思路一致，请自行鉴别有用注释
-
+Safe_State safe_state;
+volatile float jscope[2];
 // 飞镖控制数据
 typedef struct
 {
@@ -37,9 +38,9 @@ static Dart_Ctrl_Cmd_s dart_ctrl_cmd = {
 
 int32_t dart_yaw_targetangle[3]; // 打击目标的角度	0无 1前哨站 2基地
 //三对摩擦轮转速预设
-int16_t dart_fire_targetspeed1[3] = { 0, 5900, 8500 }; // 0停转 1前哨站 2基地
-int16_t dart_fire_targetspeed2[3] = { 0, 5900, 8500 }; // 0停转 1前哨站 2基地
-int16_t dart_fire_targetspeed3[3] = { 0, 5900, 8500 }; // 0停转 1前哨站 2基地
+int16_t dart_fire_targetspeed1[3] = { 0, 7000, 4000 }; // 0停转 1前哨站 2基地
+int16_t dart_fire_targetspeed2[3] = { 0, 7000, 4000 }; // 0停转 1前哨站 2基地
+int16_t dart_fire_targetspeed3[3] = { 0, 7000, 4000 }; // 0停转 1前哨站 2基地
 
 static RC_ctrl_t *rc_data;              // 遥控器数据,初始化时返回
 static referee_info_t *referee_data; // 用于获取裁判系统的数据
@@ -125,9 +126,13 @@ static void Enable_Power(void)
 static void Reset_Reload(void)//state:1表示被动断电（设备掉线），0表示手段断电（右拨杆打最下）
 {
 	// 手动断电右拨杆向下时，将左拨杆下拨刷新reload电机0点
-	if (rc_data[TEMP].remote_data.rc.switch_left == RC_SW_DOWN || dart_ctrl_cmd.dart_status == ROBOT_STOP)
+	if (rc_data[TEMP].remote_data.rc.switch_left == RC_SW_DOWN )
 	{
-		motor_reload->motor_controller.pid_ref = motor_reload->measure.ecd;
+		dart_ctrl_cmd.reload_target_angle = motor_reload->measure.total_angle;
+		dart_ctrl_cmd.push_target_angle = motor_push->measure.total_angle;
+		dart_ctrl_cmd.yaw_target_angle = motor_yaw_recv->measure.total_angle;
+		dart_yaw_targetangle[DART_TARGET_BASE]=motor_yaw_recv->measure.total_angle;
+		dart_yaw_targetangle[DART_TARGET_OUTPOST]=motor_yaw_recv->measure.total_angle;
 	}
 }
 
@@ -135,9 +140,9 @@ static void Send_Mode(void)
 {
 	// 摩擦轮电机
 	DJIMotorSetRef(motor_fire_l1, dart_ctrl_cmd.fire_target_speed[0]);
-	DJIMotorSetRef(motor_fire_r1, dart_ctrl_cmd.fire_target_speed[0]);
+	DJIMotorSetRef(motor_fire_r1, -dart_ctrl_cmd.fire_target_speed[0]);
 	DJIMotorSetRef(motor_fire_l2, dart_ctrl_cmd.fire_target_speed[1]);
-	DJIMotorSetRef(motor_fire_r2, dart_ctrl_cmd.fire_target_speed[1]);
+	DJIMotorSetRef(motor_fire_r2, -dart_ctrl_cmd.fire_target_speed[1]);
 	// DJIMotorSetRef(motor_fire_l3, dart_ctrl_cmd.fire_target_speed[2];
 	// DJIMotorSetRef(motor_fire_r3, dart_ctrl_cmd.fire_target_speed[2]);
 
@@ -198,7 +203,7 @@ static void Fire_Mode(void)
 			if (dart_ctrl_cmd.push_target_speed < 0)//目标速度小于0是推到顶
 			{
 				// 设置速度大于0，开始反转回退，并且重新启动定时器等待推杆收到底部
-				dart_ctrl_cmd.push_target_speed = 1000;
+				dart_ctrl_cmd.push_target_speed = 4000;
 				dart_ctrl_cmd.time_span_ms = 1500.0f;
 				dart_ctrl_cmd.time_start_ms = DWT_GetTimeline_ms();
 			}
@@ -219,11 +224,11 @@ static void Fire_Mode(void)
 			if (!dart_ctrl_cmd.fire_delay_flag)//如果还没等待过
 			{
 				// 拨盘目标角度加180度，这用的是编码位，按理来说应该是8192*19/2=77824，但是实际测试就是得78700会比较准确转过180度
-				dart_ctrl_cmd.reload_target_angle += 90.0f * 19.0f;
+				dart_ctrl_cmd.reload_target_angle += 181.0f * 19.0f;
 				// 将是否执行过等待的标志位置1
 				dart_ctrl_cmd.fire_delay_flag = 1;
 				// 然后设置定时器延时50*0.05=2.5s
-				dart_ctrl_cmd.time_span_ms = 5000.0f;
+				dart_ctrl_cmd.time_span_ms = 2500.0f;
 				dart_ctrl_cmd.time_start_ms = DWT_GetTimeline_ms();
 			}
 			else if (DWT_GetTimeline_ms() - dart_ctrl_cmd.time_start_ms > dart_ctrl_cmd.time_span_ms)//如果定时器响了
@@ -232,7 +237,7 @@ static void Fire_Mode(void)
 				dart_ctrl_cmd.fire_delay_flag = 0;
 				dart_ctrl_cmd.fire_num_flag = 1;//Push_Num_Flag置1
 				dart_ctrl_cmd.fire_reset_flag = 0;
-				dart_ctrl_cmd.push_target_speed = -1000;
+				dart_ctrl_cmd.push_target_speed = -4000;
 				dart_ctrl_cmd.time_span_ms = 1500.0f;
 				dart_ctrl_cmd.time_start_ms = DWT_GetTimeline_ms();
 			}
@@ -243,7 +248,7 @@ static void Fire_Mode(void)
 			if (!dart_ctrl_cmd.fire_delay_flag)//如果还没等待过
 			{
 				// 拨盘目标角度加90度，这用的是编码位，按理来说应该是8192*19/4=38912，但是实际测试就是得39350会比较准确转过180度
-				dart_ctrl_cmd.reload_target_angle += 45.0f * 19.0f;
+				dart_ctrl_cmd.reload_target_angle += 91.0f * 19.0f;
 				// 将是否执行过等待的标志位置1
 				dart_ctrl_cmd.fire_delay_flag = 1;
 				// 然后设置定时器延时50*0.05=2.5s
@@ -295,7 +300,7 @@ static void Ready_Mode(void) // 发射准备，右边拨杆打到最上
 				dart_ctrl_cmd.fire_target_speed[0] = dart_fire_targetspeed1[DART_TARGET_NONE];
 				dart_ctrl_cmd.fire_target_speed[1] = dart_fire_targetspeed2[DART_TARGET_NONE];
 				// dart_ctrl_cmd.fire_target_speed[2] = dart_fire_targetspeed3[DART_TARGET_NONE];
-				dart_ctrl_cmd.yaw_target_angle = motor_yaw_recv->measure.total_angle;
+//				dart_ctrl_cmd.yaw_target_angle = motor_yaw_recv->measure.total_angle;
 				break;
 			default:
 				break;
@@ -310,7 +315,7 @@ static void Ready_Mode(void) // 发射准备，右边拨杆打到最上
 			dart_ctrl_cmd.fire_delay_flag = 0;
 			dart_ctrl_cmd.fire_reset_flag = 0;
 			// 推杆设置速度向上推，然后重置定时器
-			dart_ctrl_cmd.push_target_speed = -1000;
+			dart_ctrl_cmd.push_target_speed = -4000;
 
 			dart_ctrl_cmd.time_span_ms = 1500.0f;
 			dart_ctrl_cmd.time_start_ms = DWT_GetTimeline_ms();
@@ -326,14 +331,14 @@ static void Ready_Mode(void) // 发射准备，右边拨杆打到最上
 		dart_ctrl_cmd.fire_target_speed[0] = dart_fire_targetspeed1[DART_TARGET_NONE];
 		dart_ctrl_cmd.fire_target_speed[1] = dart_fire_targetspeed2[DART_TARGET_NONE];
 		// dart_ctrl_cmd.fire_target_speed[2] = dart_fire_targetspeed3[DART_TARGET_NONE];
-		dart_ctrl_cmd.yaw_target_angle = motor_yaw_recv->measure.total_angle;
+//		dart_ctrl_cmd.yaw_target_angle = motor_yaw_recv->measure.total_angle;
 	}
 	else// 如果连锁定都不正常直接锁死整个发射机构
 	{
 		dart_ctrl_cmd.fire_target_speed[0] = dart_fire_targetspeed1[DART_TARGET_NONE];
 		dart_ctrl_cmd.fire_target_speed[1] = dart_fire_targetspeed2[DART_TARGET_NONE];
 		// dart_ctrl_cmd.fire_target_speed[2] = dart_fire_targetspeed3[DART_TARGET_NONE];
-		dart_ctrl_cmd.yaw_target_angle = motor_yaw_recv->measure.total_angle;
+//		dart_ctrl_cmd.yaw_target_angle = motor_yaw_recv->measure.total_angle;
 	}
 }
 
@@ -352,7 +357,8 @@ static void Adjust_Mode(void) // 姿态调整，右边拨杆打到中间
 	// dart_ctrl_cmd.fire_target_speed[2] = dart_fire_targetspeed3[DART_TARGET_NONE];
 	dart_ctrl_cmd.yaw_target_angle = motor_yaw_recv->measure.total_angle;
 	
-	if (dart_ctrl_cmd.adjust_savety_flag && dart_ctrl_cmd.check_locked_flag)// 如果通过了安全判断且所有电机锁定在规定角度范围内
+//	if (dart_ctrl_cmd.adjust_savety_flag && dart_ctrl_cmd.check_locked_flag)// 如果通过了安全判断且所有电机锁定在规定角度范围内
+	if (dart_ctrl_cmd.adjust_savety_flag)//检查check_locked_flag会出现问题
 	{
 		// 储存上次推杆状态
 		static uint8_t last_rc_ch2 = 0;
@@ -406,10 +412,10 @@ static void Adjust_Mode(void) // 姿态调整，右边拨杆打到中间
 				break;
 			case RC_SW_MID:// 拨中间，这时候能调整yaw轴角度和控制转盘转过90度
 				// 此时只做yaw速度闭环，速度由摇杆决定
-				dart_ctrl_cmd.yaw_target_speed = rc_data[TEMP].remote_data.rc.rocker_r_ * 5;
+				dart_ctrl_cmd.yaw_target_speed = rc_data[TEMP].remote_data.rc.rocker_r_ * 10;
 				if (rc_data[TEMP].remote_data.rc.rocker_l1 >= 600)// 如果左摇杆推上
 				{
-					dart_ctrl_cmd.reload_target_angle += 45.0f * 19.0f;
+					dart_ctrl_cmd.reload_target_angle += 90.0f * 19.0f;
 					dart_ctrl_cmd.adjust_savety_flag = 0;// 重置安全标志位
 				}
 				break;
@@ -434,25 +440,29 @@ static void Adjust_Mode(void) // 姿态调整，右边拨杆打到中间
 static void Check_Mode(void)
 {
 	// 允许换弹距目标值正负大约4度偏差
-	if (motor_reload->measure.total_angle - dart_ctrl_cmd.reload_target_angle >= 2.0f / 19.0f || 
-		motor_reload->measure.total_angle - dart_ctrl_cmd.reload_target_angle <= -2.0f / 19.0f)
+	if (motor_reload->measure.total_angle - dart_ctrl_cmd.reload_target_angle >= 2.0f  || 
+		motor_reload->measure.total_angle - dart_ctrl_cmd.reload_target_angle <= -2.0f )
 	{
 		dart_ctrl_cmd.check_locked_flag = 0;
+		safe_state=RELAOD;
 	}
 	// 允许yaw距目标值正负1度编码位偏差
 	else if (motor_yaw_recv->measure.total_angle - dart_ctrl_cmd.yaw_target_angle >= 0.5f ||
 		     motor_yaw_recv->measure.total_angle - dart_ctrl_cmd.yaw_target_angle <= -0.5f)
 	{
 		dart_ctrl_cmd.check_locked_flag = 0;
+		safe_state=YAW;
 	}
 	// 对于6020,不带减速箱，1编码位约为0.0012度，允许距目标值正负10000个编码位偏差，换算后大约为10度
-	else if (motor_push->measure.total_angle - dart_ctrl_cmd.push_target_angle >= 5.0f / 36.0f ||
-		     motor_push->measure.total_angle - dart_ctrl_cmd.push_target_angle <= -5.0f / 36.0f)
+	else if (motor_push->measure.total_angle - dart_ctrl_cmd.push_target_angle >= 5.0f  ||
+		     motor_push->measure.total_angle - dart_ctrl_cmd.push_target_angle <= -5.0f )
 	{
+		safe_state=PUSH;
 		dart_ctrl_cmd.check_locked_flag = 0;
 	}
 	else
 	{
+		safe_state=NONE;
 		dart_ctrl_cmd.check_locked_flag = 1;
 	}
 }
@@ -482,9 +492,9 @@ void DartInit()
         .can_init_config.can_handle = &hcan1,
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp = 10, // 4.5
-                .Ki = 0,  // 0
-                .Kd = 0,  // 0
+                .Kp = 1, // 4.5
+                .Ki = 1,  // 0
+                .Kd = 0.01,  // 0
                 .IntegralLimit = 3000,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .MaxOut = 12000,
@@ -495,7 +505,7 @@ void DartInit()
                 .Kd = 0,
                 .IntegralLimit = 3000,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-                .MaxOut = 15000,
+                .MaxOut = 10000,
             },
         },
         .controller_setting_init_config = {
@@ -560,20 +570,20 @@ void DartInit()
         },
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp = 10, // 10
-                .Ki = 0,
+                .Kp = 2000, // 10
+                .Ki = 20,
                 .Kd = 0,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-                .IntegralLimit = 100,
-                .MaxOut = 500,
+                .IntegralLimit = 2500,
+                .MaxOut = 16000,
             },
             .speed_PID = {
-                .Kp = 50,  // 50
-                .Ki = 350, // 350
+                .Kp = 10,  // 50
+                .Ki = 0, // 350
                 .Kd = 0,   // 0
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 2500,
-                .MaxOut = 20000,
+                .MaxOut = 16000,
             },
             .other_angle_feedback_ptr = &motor_yaw_recv->measure.total_angle,
         },
@@ -596,17 +606,17 @@ void DartInit()
         },
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp = 10, // 10
-                .Ki = 0,
+                .Kp = 20, // 10
+                .Ki = 250,
                 .Kd = 0,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-                .IntegralLimit = 100,
-                .MaxOut = 500,
+                .IntegralLimit = 1000,
+                .MaxOut = 4000,
             },
             .speed_PID = {
-                .Kp = 50,  // 50
+                .Kp = 2,  // 50
                 .Ki = 350, // 350
-                .Kd = 0,   // 0
+                .Kd = 0.01,   // 0
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 2500,
                 .MaxOut = 20000,
@@ -631,20 +641,20 @@ void DartInit()
         },
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp = 10, // 10
-                .Ki = 0,
-                .Kd = 0,
+                .Kp = 20, // 10
+                .Ki = 250,
+                .Kd = 0.01,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 100,
                 .MaxOut = 500,
             },
             .speed_PID = {
-                .Kp = 50,  // 50
-                .Ki = 350, // 350
+                .Kp = 2,  // 50
+                .Ki = 0, // 350
                 .Kd = 0,   // 0
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 2500,
-                .MaxOut = 20000,
+                .MaxOut = 16000,
             },
         },
         .controller_setting_init_config = {
@@ -668,6 +678,7 @@ void DartInit()
  */
 void DartTask()
 {
+	jscope[0]=motor_yaw_recv->measure.total_angle;
 	OnLineConfirm();
     if (dart_ctrl_cmd.dart_status == ROBOT_READY)
     {
@@ -707,5 +718,8 @@ void DartTask()
 	{
 		Disable_Power();
 		Reset_Reload();
+		dart_ctrl_cmd.yaw_target_angle = motor_yaw_recv->measure.total_angle;
+		dart_fire_targetspeed1[DART_TARGET_BASE]=dart_ctrl_cmd.yaw_target_angle;
+		dart_fire_targetspeed2[DART_TARGET_BASE]=dart_ctrl_cmd.yaw_target_angle;
 	}
 }

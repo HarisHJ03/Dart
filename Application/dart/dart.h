@@ -13,4 +13,12 @@ void DartInit(void);
  */
 void DartTask(void);
 
+typedef enum 
+{
+	NONE,
+	RELAOD,
+	YAW,
+	PUSH,
+}Safe_State;
+
 #endif // CHASSIS_H
