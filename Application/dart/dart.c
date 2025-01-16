@@ -8,7 +8,7 @@
 
 // 以下注释都是裸机搬运过来的残留，思路一致，请自行鉴别有用注释
 Safe_State safe_state;
-volatile float jscope[2];
+float jscope;
 // 飞镖控制数据
 typedef struct
 {
@@ -571,14 +571,14 @@ void DartInit()
         .controller_param_init_config = {
             .angle_PID = {
                 .Kp = 2000, // 10
-                .Ki = 20,
-                .Kd = 0,
+                .Ki = 100,
+                .Kd = 0.1,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 2500,
                 .MaxOut = 16000,
             },
             .speed_PID = {
-                .Kp = 10,  // 50
+                .Kp = 2,  // 50
                 .Ki = 0, // 350
                 .Kd = 0,   // 0
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
@@ -678,7 +678,7 @@ void DartInit()
  */
 void DartTask()
 {
-	jscope[0]=motor_yaw_recv->measure.total_angle;
+	jscope=motor_yaw_recv->measure.total_angle;
 	OnLineConfirm();
     if (dart_ctrl_cmd.dart_status == ROBOT_READY)
     {

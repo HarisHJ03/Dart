@@ -120,7 +120,6 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGUARM</Key>
-          <Name>&gt;</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -157,7 +156,7 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>487</LineNumber>
+          <LineNumber>488</LineNumber>
           <EnabledFlag>1</EnabledFlag>
           <Address>134223424</Address>
           <ByteObject>0</ByteObject>
@@ -168,23 +167,7 @@
           <BreakIfRCount>1</BreakIfRCount>
           <Filename>D:\灏忕背浜戠洏\妗岄潰\24_Dart_Hal\Application\dart\dart.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\robomaster\../Application/dart/dart.c\487</Expression>
-        </Bp>
-        <Bp>
-          <Number>1</Number>
-          <Type>0</Type>
-          <LineNumber>488</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>0</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>0</BreakIfRCount>
-          <Filename>..\Application\dart\dart.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression></Expression>
+          <Expression>\\robomaster\../Application/dart/dart.c\488</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -242,6 +225,11 @@
           <count>10</count>
           <WinNumber>1</WinNumber>
           <ItemText>motor_fire_l1</ItemText>
+        </Ww>
+        <Ww>
+          <count>11</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>dart_fire_targetspeed1,0x0A</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>
