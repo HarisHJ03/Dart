@@ -76,9 +76,14 @@ enum beat_state
 	BASE
 };
 
+int16_t test_speed1[4]={2000,3000,4000,5000};//低于3000大的摩擦轮不启动
+int16_t test_speed2[4]={2000,3000,4000,5000};//每发飞镖的转速
+int32_t test_yaw[4]={0,0,0,0};//每发飞镖的yaw补偿
+uint8_t ID;//四发飞镖定ID
+
 // 三对摩擦轮转速预设
-int16_t target_speed1[3] = {0, 2000, 4000}; // 0停转 1前哨站 2基地5800, 8500
-int16_t target_speed2[3] = {0, 2000, 4000}; // 0停转 1前哨站 2基地
+int16_t target_speed1[3] = {0, 5550, 6000}; // 0停转 1前哨站 2基地5800, 8500
+int16_t target_speed2[3] = {0, 5550, 6000}; // 0停转 1前哨站 2基地
 int16_t target_speed3[3] = {0, 2000, 4000}; // 0停转 1前哨站 2基地
 // yaw轴角度存储数组，储存前哨站和基地的位置
 int32_t target_angle[3]; // 0无 1前哨站 2基地
@@ -230,6 +235,7 @@ void Reset_Reload(uint8_t state) // state:1表示被动断电（设备掉线）�
 	if (rc.sw1 == 2 || state) // 左1右2
 	{
 		reload_target_angle = moto_reload.total_ecd;
+		ID=0;
 	}
 }
 
@@ -285,10 +291,11 @@ static void Push_Mode(void)
 	Fire_Savety_Flag = 0;
 	Fire_Finish_Flag = 0;
 	Adjust_Savety_Flag = 0;
-
+	
 	// 刚进入Push_Reset_Flag为0，表示没有结束推杆发射
 	if (!Push_Reset_Flag)//判断推杆位置
 	{
+		
 		// 如果能转动说明还没推到顶，重置定时器
 		if (moto_push.speed_rpm > 50 || moto_push.speed_rpm < -50)
 		{
@@ -312,10 +319,12 @@ static void Push_Mode(void)
 				push_target_speed = 0;
 				Push_Reset_Flag = 1;
 			}
+			
 		}
 	}
 	else//装弹+偶数发
 	{
+		
 		// 如果打出了第一发，这时候Push_Num_Flag为0,
 		if (!Push_Num_Flag) // 如果是第一发
 		{
@@ -351,6 +360,7 @@ static void Push_Mode(void)
 			Push_Reset_Flag = 1;
 		}
 	}
+	
 }
 
 static void Fire_Mode(void) // 发射准备，右边拨杆打到最上
@@ -376,10 +386,39 @@ static void Fire_Mode(void) // 发射准备，右边拨杆打到最上
 			break;
 		// 前哨站模式
 		case 2: // 拨下，记录当前为前哨站角度
-			fire_target_speed[0] = target_speed1[OUTPOST];
-			fire_target_speed[1] = target_speed2[OUTPOST];
-			fire_target_speed[2] = target_speed3[OUTPOST];
-			yaw_target_angle = target_angle[OUTPOST];
+			{
+				switch(ID)
+				{
+					case 0:
+						fire_target_speed[0] = test_speed1[0];
+						fire_target_speed[1] = test_speed2[0];
+						yaw_target_angle = test_yaw[0]+target_angle[OUTPOST];
+					break;
+					case 1:
+						fire_target_speed[0] = test_speed1[1];
+						fire_target_speed[1] = test_speed2[1];
+						yaw_target_angle = test_yaw[1]+target_angle[OUTPOST];
+					break;
+					case 2:
+						fire_target_speed[0] = test_speed1[2];
+						fire_target_speed[1] = test_speed2[2];
+						yaw_target_angle = test_yaw[2]+target_angle[OUTPOST];
+					break;
+					case 3:
+						fire_target_speed[0] = test_speed1[3];
+						fire_target_speed[1] = test_speed2[3];
+						yaw_target_angle = test_yaw[3]+target_angle[OUTPOST];
+					break;
+					default:
+					break;
+				}
+				
+				
+			}
+//			fire_target_speed[0] = target_speed1[OUTPOST];
+//			fire_target_speed[1] = target_speed2[OUTPOST];
+//			fire_target_speed[2] = target_speed3[OUTPOST];
+//			yaw_target_angle = target_angle[OUTPOST];
 			break;
 		// 锁死模式
 		case 3: // 中间，锁定发射机构
@@ -425,7 +464,7 @@ static void Fire_Mode(void) // 发射准备，右边拨杆打到最上
 		test_state=3;
 //		fire_target_speed[0] = target_speed1[STOP];
 //		fire_target_speed[1] = target_speed2[STOP];
-//		fire_target_speed[2] = target_speed3[STOP];
+//		fire_target_speed[2] = target_speed3[STOP];//修改为第二三发中间摩擦轮不会停，但注意发射完成也不停
 		yaw_target_angle = moto_yaw_6020.total_ecd;
 	}
 }
