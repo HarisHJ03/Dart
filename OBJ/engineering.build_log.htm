@@ -1,0 +1,57 @@
+<html>
+<body>
+<pre>
+<h1>礦ision Build Log</h1>
+<h2>Tool Versions:</h2>
+IDE-Version: μVision V5.14.0.0
+Copyright (C) 2015 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: ASUS,  , LIC=JL28G-V9H4P-X7URZ-JPH7V-GI9F7-ZW5RK
+ 
+Tool Versions:
+Toolchain:       MDK-ARM Standard  Version: 5.14.0.0
+Toolchain Path:  D:\keil5\ARM\ARMCC\Bin
+C Compiler:      Armcc.exe V5.05 update 1 (build 106)
+Assembler:       Armasm.exe V5.05 update 1 (build 106)
+Linker/Locator:  ArmLink.exe V5.05 update 1 (build 106)
+Library Manager: ArmAr.exe V5.05 update 1 (build 106)
+Hex Converter:   FromElf.exe V5.05 update 1 (build 106)
+CPU DLL:         SARMCM3.DLL V5.14.0.0
+Dialog DLL:      DCM.DLL V1.13.1.0
+Target DLL:      Segger\JL2CM3.dll V2.99.13.0
+Dialog DLL:      TCM.DLL V1.14.4.0
+ 
+<h2>Project:</h2>
+C:\Users\ASUS\Desktop\dart\Dart-24_Dart\Dart-24_Dart\USER\engineering.uvprojx
+Project File Date:  01/17/2025
+
+<h2>Output:</h2>
+Build target 'ENGINEER'
+compiling pc_task.c...
+..\Task\pc_task.c(109): warning:  #223-D: function "err_detector_hook" declared implicitly
+                err_detector_hook(PC_SYS_OFFLINE);
+..\Task\pc_task.c(109): error:  #20: identifier "PC_SYS_OFFLINE" is undefined
+                err_detector_hook(PC_SYS_OFFLINE);
+..\Task\pc_task.c(113): error:  #20: identifier "PC_UART_IDLE_SIGNAL" is undefined
+                        xTaskNotifyFromISR((TaskHandle_t)pc_rx_Task_Handle,
+..\Task\pc_task.c: 1 warning, 2 errors
+compiling pc_tx_data.c...
+..\PROTOCOL\pc_tx_data.c(5): error:  #5: cannot open source input file "gimbal_task.h": No such file or directory
+  #include "gimbal_task.h"
+..\PROTOCOL\pc_tx_data.c: 0 warnings, 1 error
+compiling data_packet.c...
+..\PROTOCOL\data_packet.c(137): error:  #20: identifier "judge_txdata_fifo" is undefined
+                fifo_s_puts(&judge_txdata_fifo, tx_buf, frame_length); // 将数据从tx_buf放到judge_txdata_fifo
+..\PROTOCOL\data_packet.c(240): warning:  #223-D: function "judgement_data_handler" declared implicitly
+                                                judgement_data_handler(p_obj->protocol_packet);
+..\PROTOCOL\data_packet.c: 1 warning, 1 error
+"..\OBJ\engineering.axf" - 4 Error(s), 2 Warning(s).
+
+<h2>Collection of Component include folders:</h2>
+  C:\Users\ASUS\Desktop\dart\Dart-24_Dart\Dart-24_Dart\USER\RTE
+  D:\keil5\ARM\PACK\Keil\STM32F4xx_DFP\2.13.0
+
+<h2>Collection of Component Files used:</h2>
+Target not created.
+</pre>
+</body>
+</html>
