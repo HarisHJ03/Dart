@@ -76,8 +76,8 @@ enum beat_state
 	BASE
 };
 
-int16_t test_speed1[4]={2000,3000,4000,5000};//低于3000大的摩擦轮不启动
-int16_t test_speed2[4]={2000,3000,4000,5000};//每发飞镖的转速
+int16_t test_speed1[4]={4000,4500,5000,5500};//低于3000大的摩擦轮不启动
+int16_t test_speed2[4]={4000,4500,5000,5500};//每发飞镖的转速
 int32_t test_yaw[4]={0,0,0,0};//每发飞镖的yaw补偿
 uint8_t ID;//四发飞镖定ID
 
@@ -243,6 +243,7 @@ static void Send_Mode(void)
 {
 	if (Can1_Flag == 1)
 	{
+		
 		// 四个3508速度闭环
 		fire_calc[0] = pid_calc(&fire1, moto_fire[0].speed_rpm, -fire_target_speed[0]);
 		fire_calc[1] = pid_calc(&fire2, moto_fire[1].speed_rpm, fire_target_speed[0]);
@@ -312,12 +313,17 @@ static void Push_Mode(void)
 				push_target_speed = 1000;
 				TIM2_SetCount(30);
 				TIM2_ClearFlag();
+				
 			}
 			else // 目标速度大于0是收到底
 			{
 				// 这时候停转，并且Push_Reset_Flag置1，这时候推杆会重新回到锁定角度状态
 				push_target_speed = 0;
 				Push_Reset_Flag = 1;
+				if(ID<3)
+					ID++;
+				else 
+					ID=0;
 			}
 			
 		}
@@ -390,7 +396,7 @@ static void Fire_Mode(void) // 发射准备，右边拨杆打到最上
 				switch(ID)
 				{
 					case 0:
-						fire_target_speed[0] = test_speed1[0];
+						fire_target_speed[0] = test_speed2[0];
 						fire_target_speed[1] = test_speed2[0];
 						yaw_target_angle = test_yaw[0]+target_angle[OUTPOST];
 					break;
@@ -616,6 +622,31 @@ void Dart_MainControl(void)
 			{
 			case 1:
 				Push_Mode();
+				switch(ID)
+				{
+					case 0:
+						fire_target_speed[0] = test_speed2[0];
+						fire_target_speed[1] = test_speed2[0];
+						yaw_target_angle = test_yaw[0]+target_angle[OUTPOST];
+					break;
+					case 1:
+						fire_target_speed[0] = test_speed1[1];
+						fire_target_speed[1] = test_speed2[1];
+						yaw_target_angle = test_yaw[1]+target_angle[OUTPOST];
+					break;
+					case 2:
+						fire_target_speed[0] = test_speed1[2];
+						fire_target_speed[1] = test_speed2[2];
+						yaw_target_angle = test_yaw[2]+target_angle[OUTPOST];
+					break;
+					case 3:
+						fire_target_speed[0] = test_speed1[3];
+						fire_target_speed[1] = test_speed2[3];
+						yaw_target_angle = test_yaw[3]+target_angle[OUTPOST];
+					break;
+					default:
+					break;
+				}
 				break;
 			case 3:
 				Adjust_Mode();
